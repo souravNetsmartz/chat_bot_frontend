@@ -11,9 +11,14 @@ import {
   IconButton,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import MicIcon from "@mui/icons-material/Mic";
 import { ThreeDots } from "react-loader-spinner";
 import HeaderLogo from "./assets/NetsmartzLogo.jpg";
 import BotGIF from "./assets/bot.gif";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
+import SpeechRecognitionDialog from "./SpeechRecognitionDialogue";
 // const dummyConversation = [
 //   { user: "Hello", bot: "Hi there! How can I help you?" },
 //   {
@@ -25,6 +30,18 @@ const Chatbot = () => {
   const [query, setQuery] = useState("");
   const [conversation, setConversation] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const [isListening, setIsListening] = useState(false);
+  const [myTranscript, setTranscript] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+    isMicrophoneAvailable,
+  } = useSpeechRecognition();
 
   const handleQuery = async () => {
     try {
@@ -69,6 +86,35 @@ const Chatbot = () => {
       setConversation(errorConversation);
       setLoading(false);
     }
+  };
+
+  const handleMicButton = () => {
+    if (!isMicrophoneAvailable) {
+      alert("Microphone is not available.");
+      return;
+    }
+    if (!browserSupportsSpeechRecognition) {
+      alert("Feature not supported in this browser.");
+      return;
+    }
+    handleStartListening();
+  };
+  const handleStartListening = () => {
+    SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
+    setIsDialogOpen(true);
+    setIsListening(true);
+  };
+
+  const handleStopListening = () => {
+    SpeechRecognition.stopListening();
+    setIsListening(false);
+    setIsDialogOpen(false);
+    setQuery(transcript);
+    resetTranscript();
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(true);
   };
 
   return (
@@ -192,7 +238,7 @@ const Chatbot = () => {
                   backgroundColor: "white",
                 }}
               >
-                <TextField
+                {/* <TextField
                   placeholder="Enter your query"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -231,6 +277,46 @@ const Chatbot = () => {
                       </InputAdornment>
                     ),
                   }}
+                /> */}
+                <TextField
+                  placeholder="Enter your query"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "#B2BAC2",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "black",
+                      },
+                      "&.Mui-focused fieldset": {
+                        border: "0.1px solid #B2BAC2",
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        {loading ? (
+                          <IconButton>
+                            <ThreeDots height={30} width={30} color="#F58220" />
+                          </IconButton>
+                        ) : (
+                          <>
+                            <IconButton onClick={() => handleMicButton()}>
+                              <MicIcon />
+                            </IconButton>
+                            <IconButton onClick={handleQuery}>
+                              <SendIcon />
+                            </IconButton>
+                          </>
+                        )}
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Box>
             </Box>
@@ -244,6 +330,13 @@ const Chatbot = () => {
           Powered by BYT strategy group
         </Typography>
       </Box> */}
+      <SpeechRecognitionDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        listening={listening}
+        onStopListening={handleStopListening}
+        transcript={transcript}
+      />
     </Box>
   );
 };
